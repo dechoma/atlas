@@ -27,6 +27,7 @@ import org.apache.atlas.model.audit.AtlasAuditEntry;
 import org.apache.atlas.model.audit.AuditSearchParameters;
 import org.apache.atlas.model.discovery.AtlasSearchResult;
 import org.apache.atlas.model.discovery.SearchParameters;
+import org.apache.atlas.model.glossary.AtlasGlossary;
 import org.apache.atlas.model.instance.AtlasClassification;
 import org.apache.atlas.model.instance.AtlasClassification.AtlasClassifications;
 import org.apache.atlas.model.instance.AtlasEntity.AtlasEntitiesWithExtInfo;
@@ -35,6 +36,7 @@ import org.apache.atlas.model.instance.AtlasEntityHeaders;
 import org.apache.atlas.model.instance.AtlasRelationship;
 import org.apache.atlas.model.instance.AtlasRelationship.AtlasRelationshipWithExtInfo;
 import org.apache.atlas.model.instance.EntityMutationResponse;
+import org.apache.atlas.model.instance.AtlasRelatedObjectId;
 import org.apache.atlas.model.lineage.AtlasLineageInfo;
 import org.apache.atlas.model.lineage.AtlasLineageInfo.LineageDirection;
 import org.apache.atlas.model.typedef.AtlasClassificationDef;
@@ -89,6 +91,13 @@ public class AtlasClientV2 extends AtlasBaseClient {
     private static final String RELATIONSHIPS_URI  = BASE_URI + "v2/relationship/";
     private static final String BULK_HEADERS = "bulk/headers";
     private static final String BULK_SET_CLASSIFICATIONS = "bulk/setClassifications";
+
+    //Glossary APIs
+    private static final String GLOSSARY_URI         = BASE_URI + "v2/glossary";
+    private static final String GLOSSARY_TERM        = GLOSSARY_URI + "/term";
+    private static final String GLOSSARY_TERMS       = GLOSSARY_URI + "/terms";
+    private static final String GLOSSARY_CATEGORY    = GLOSSARY_URI + "/category";
+    private static final String GLOSSARY_CATEGORIES  = GLOSSARY_URI + "/categories";
 
     public AtlasClientV2(String[] baseUrl, String[] basicAuthUserNamePassword) {
         super(baseUrl, basicAuthUserNamePassword);
@@ -496,6 +505,26 @@ public class AtlasClientV2 extends AtlasBaseClient {
         });
     }
 
+    // Glossary APIs
+    public List<AtlasGlossary> getAllGlossaries(String sortByAttribute, int limit, int offset) throws AtlasServiceException {
+        MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+
+        queryParams.add("sort", sortByAttribute);
+        queryParams.add(LIMIT, String.valueOf(limit));
+        queryParams.add(OFFSET, String.valueOf(offset));
+
+        return callAPI(API_V2.GET_ALL_GLOSSARIES, List.class, queryParams);
+    }
+
+    public void assignTermToEntities(String termGuid, List<AtlasRelatedObjectId> relatedObjectIds) throws AtlasServiceException {
+        callAPI(formatPathParameters(API_V2.ASSIGN_TERM_TO_ENTITIES, termGuid), (Class<?>) null, relatedObjectIds);
+
+    }
+
+    public void disassociateTermFromEntities(String termGuid, List<AtlasRelatedObjectId> relatedObjectIds) throws AtlasServiceException {
+        callAPI(formatPathParameters(API_V2.DISASSOCIATE_TERM_FROM_ENTITIES, termGuid), (Class<?>) null, relatedObjectIds);
+    }
+
     @Override
     protected API formatPathParameters(final API api, final String... params) {
         return new API(String.format(api.getPath(), params), api.getMethod(), api.getExpectedStatus());
@@ -579,6 +608,7 @@ public class AtlasClientV2 extends AtlasBaseClient {
     }
 
     public static class API_V2 extends API {
+        public static final API_V2 GET_ALL_GLOSSARIES          = new API_V2(GLOSSARY_URI, HttpMethod.GET, Response.Status.OK);
         public static final API_V2 GET_TYPEDEF_BY_NAME         = new API_V2(TYPEDEF_BY_NAME, HttpMethod.GET, Response.Status.OK);
         public static final API_V2 GET_TYPEDEF_BY_GUID         = new API_V2(TYPEDEF_BY_GUID, HttpMethod.GET, Response.Status.OK);
         public static final API_V2 GET_ALL_TYPE_DEFS           = new API_V2(TYPEDEFS_API, HttpMethod.GET, Response.Status.OK);
@@ -612,6 +642,8 @@ public class AtlasClientV2 extends AtlasBaseClient {
         public static final API_V2 DELETE_RELATIONSHIP_BY_GUID = new API_V2(RELATIONSHIPS_URI + "guid/", HttpMethod.DELETE, Response.Status.NO_CONTENT);
         public static final API_V2 CREATE_RELATIONSHIP         = new API_V2(RELATIONSHIPS_URI , HttpMethod.POST, Response.Status.OK);
         public static final API_V2 UPDATE_RELATIONSHIP         = new API_V2(RELATIONSHIPS_URI , HttpMethod.PUT, Response.Status.OK);
+        public static final API_V2 ASSIGN_TERM_TO_ENTITIES         = new API_V2(GLOSSARY_TERMS + "/%s/assignedEntities", HttpMethod.POST, Response.Status.NO_CONTENT);
+        public static final API_V2 DISASSOCIATE_TERM_FROM_ENTITIES = new API_V2(GLOSSARY_TERMS + "/%s/assignedEntities", HttpMethod.PUT, Response.Status.NO_CONTENT);
         public static final API_V2 GET_BULK_HEADERS            = new API_V2(ENTITY_API + BULK_HEADERS, HttpMethod.GET, Response.Status.OK);
         public static final API_V2 UPDATE_BULK_SET_CLASSIFICATIONS = new API_V2(ENTITY_API + AtlasClientV2.BULK_SET_CLASSIFICATIONS, HttpMethod.POST, Response.Status.OK);
         public static final API_V2 GET_ATLAS_AUDITS            = new API_V2(ATLAS_AUDIT_API, HttpMethod.POST, Response.Status.OK);
